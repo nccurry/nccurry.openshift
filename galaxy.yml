@@ -18,7 +18,8 @@ tags:
 - container
 - docker
 - podman
-dependencies: {}
+dependencies:
+- "community.vmware": ">=1.16.0"
 repository: https://github.com/nccurry/nccurry.openshift
 documentation: ''
 homepage: ''
