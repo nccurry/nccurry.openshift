@@ -36,7 +36,7 @@ jobs:
           cp -rf $directories build/src
         env:
           files: "README.md LICENSE galaxy.yml"
-          directories: "roles"
+          directories: "roles meta"
 
       - name: Build Ansible collection
         run: ansible-galaxy collection build build/src --force
