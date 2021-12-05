@@ -79,6 +79,6 @@ jobs:
         if: github.ref == 'refs/heads/development'
         run: ansible-galaxy collection publish nccurry-openshift-${{ steps.cversion.outputs.version }}.tar.gz --server https://galaxy-dev.ansible.com/ --api-key ${{ secrets.GALAXYDEV_API_KEY }}
 
-      - name: Deploy Ansible collection to Galaxy
-        if: github.ref == 'refs/heads/master'
-        run: ansible-galaxy collection publish nccurry-openshift-${{ steps.cversion.outputs.version }}.tar.gz --api-key ${{ secrets.GALAXYDEV_API_KEY }}
+#      - name: Deploy Ansible collection to Galaxy
+#        if: github.ref == 'refs/heads/master'
+#        run: ansible-galaxy collection publish nccurry-openshift-${{ steps.cversion.outputs.version }}.tar.gz --api-key ${{ secrets.GALAXYDEV_API_KEY }}
