@@ -1,6 +1,6 @@
 galaxy_info:
   author: Nick Curry
-  description: Author
+  description: Ansible role to install OpenShift / OKD cli tools
   #company: your company (optional)
   license: MIT
 
