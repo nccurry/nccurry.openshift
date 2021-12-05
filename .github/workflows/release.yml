@@ -36,7 +36,7 @@ jobs:
           cp -rf $directories build/src
         env:
           files: "README.md LICENSE galaxy.yml"
-          directories: "roles"
+          directories: "roles meta"
 
       - name: Build Ansible collection
         run: ansible-galaxy collection build build/src --force
@@ -44,6 +44,7 @@ jobs:
       - name: Create release
         id: create_release
         uses: actions/create-release@v1
+        if: github.ref == 'refs/heads/master'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -66,6 +67,7 @@ jobs:
 
       - name: Upload release Asset
         id: upload-release-asset
+        if: github.ref == 'refs/heads/master'
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -79,6 +81,6 @@ jobs:
         if: github.ref == 'refs/heads/development'
         run: ansible-galaxy collection publish nccurry-openshift-${{ steps.cversion.outputs.version }}.tar.gz --server https://galaxy-dev.ansible.com/ --api-key ${{ secrets.GALAXYDEV_API_KEY }}
 
-      - name: Deploy Ansible collection to Galaxy
-        if: github.ref == 'refs/heads/master'
-        run: ansible-galaxy collection publish nccurry-openshift-${{ steps.cversion.outputs.version }}.tar.gz --api-key ${{ secrets.GALAXYDEV_API_KEY }}
+#      - name: Deploy Ansible collection to Galaxy
+#        if: github.ref == 'refs/heads/master'
+#        run: ansible-galaxy collection publish nccurry-openshift-${{ steps.cversion.outputs.version }}.tar.gz --api-key ${{ secrets.GALAXYDEV_API_KEY }}

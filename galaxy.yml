@@ -6,8 +6,6 @@ readme: README.md
 authors:
 - Nick Curry <code@nickcurry.com>
 description: Collection to administer OpenShift / OKD clusters
-license:
-- MIT
 license_file: 'LICENSE'
 tags:
 - openshift
