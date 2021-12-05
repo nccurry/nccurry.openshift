@@ -1,0 +1,21 @@
+- name: Remove files
+  ansible.builtin.file:
+    state: absent
+    path: "{{ item }}"
+  loop:
+  - "/tmp/{{ install_binary_name }}-{{ release }}.tar.gz"
+  - "/tmp/openshift-client-linux-{{ okd_release }}.tar.gz"
+  - /tmp/{{ install_binary_name }}
+  - "/tmp/oc-{{ release }}.tar.gz"
+  - /tmp/oc
+  - "{{ binary_directory }}/{{ install_binary_name }}-{{ release }}"
+  - "{{ binary_directory }}/oc-{{ release }}"
+
+- name: Remove symlink
+  ansible.builtin.file:
+    state: absent
+    path: "{{ item }}"
+  loop:
+  - "{{ binary_directory }}/oc"
+  - "{{ binary_directory }}/{{ install_binary_name }}"
+  when: create_symlinks

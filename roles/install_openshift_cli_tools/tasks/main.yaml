@@ -1,0 +1,17 @@
+- name: Teardown prerequisites
+  vars:
+    release: "{{ (install_type == 'ocp') | ternary(ocp_release, okd_release) }}"
+    oc_url: "{{ (install_type == 'ocp') | ternary(ocp_oc_url, okd_oc_url) }}"
+    install_url: "{{ (install_type == 'ocp') | ternary(ocp_url, okd_url) }}"
+    install_binary_name: "{{ (install_type == 'ocp') | ternary('openshift-install', 'okd-install') }}"
+  import_tasks: teardown.yaml
+  when: teardown
+
+- name: Deploy prerequities
+  vars:
+    release: "{{ (install_type == 'ocp') | ternary(ocp_release, okd_release) }}"
+    oc_url: "{{ (install_type == 'ocp') | ternary(ocp_oc_url, okd_oc_url) }}"
+    install_url: "{{ (install_type == 'ocp') | ternary(ocp_url, okd_url) }}"
+    install_binary_name: "{{ (install_type == 'ocp') | ternary('openshift-install', 'okd-install') }}"
+  import_tasks: deploy.yaml
+  when: not teardown

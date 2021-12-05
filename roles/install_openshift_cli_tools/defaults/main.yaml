@@ -1,0 +1,11 @@
+# URL to download okd oc cli
+okd_oc_url: "https://github.com/openshift/okd/releases/download/{{ okd_release }}/openshift-client-linux-{{ okd_release }}.tar.gz"
+
+# URL to extract OKD installation binary
+okd_url: "https://github.com/openshift/okd/releases/download/{{ okd_release }}/openshift-install-linux-{{ okd_release }}.tar.gz"
+
+# URL to download OpenShift oc cli
+ocp_oc_url: "https://mirror.openshift.com/pub/openshift-v4/clients/ocp/{{ ocp_release }}/openshift-client-linux.tar.gz"
+
+# URL to download OpenShift installation binary
+ocp_url: "https://mirror.openshift.com/pub/openshift-v4/clients/ocp/{{ ocp_release }}/openshift-install-linux.tar.gz"

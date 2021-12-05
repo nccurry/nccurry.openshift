@@ -1,0 +1,89 @@
+---
+- name: Check if oc is already installed
+  ansible.builtin.stat:
+    path: "{{ binary_directory }}/oc-{{ release }}"
+  register: oc_stat
+
+- name: Download and install oc
+  when: not oc_stat.stat.exists
+  block:
+  - name: Download oc cli archive
+    ansible.builtin.get_url:
+      url: "{{ oc_url }}"
+      dest: "/tmp/oc-{{ release }}.tar.gz"
+
+  - name: Unarchive oc cli tools
+    ansible.builtin.unarchive:
+      src: "/tmp/oc-{{ release }}.tar.gz"
+      dest: /tmp
+
+  - name: Ensure binary directory exists
+    ansible.builtin.file:
+      state: directory
+      path: "{{ binary_directory }}"
+
+  - name: Move oc cli to binary directory
+    ansible.builtin.copy:
+      src: /tmp/oc
+      dest: "{{ binary_directory }}/oc-{{ release }}"
+      owner: "{{ lookup('env', 'USER') }}"
+      group: "{{ lookup('env', 'USER') }}"
+      mode: 0774
+
+  - name: Create symlink to oc cli
+    ansible.builtin.file:
+      state: link
+      force: yes
+      src: "{{ binary_directory }}/oc-{{ release }}"
+      dest: "{{ binary_directory }}/oc"
+    when: create_symlinks
+
+- name: "Check if {{ install_binary_name }} is already installed"
+  ansible.builtin.stat:
+    path: "{{ binary_directory }}/{{ install_binary_name }}-{{ release }}"
+  register: ocp_stat
+
+- name: "Install {{ install_binary_name }}"
+  when: not ocp_stat.stat.exists
+  block:
+  - name: Download
+    ansible.builtin.get_url:
+      url: "{{ install_url }}"
+      dest: "/tmp/{{ install_binary_name }}-{{ release }}.tar.gz"
+
+  - name: Unarchive
+    ansible.builtin.unarchive:
+      src: "/tmp/{{ install_binary_name }}-{{ release }}.tar.gz"
+      dest: /tmp/
+
+  - name: "Ensure {{ binary_directory }} exists"
+    ansible.builtin.file:
+      state: directory
+      path: "{{ binary_directory }}"
+
+  - name: "Move to {{ binary_directory }}"
+    ansible.builtin.copy:
+      src: /tmp/openshift-install
+      dest: "{{ binary_directory }}/{{ install_binary_name }}-{{ release }}"
+      owner: "{{ lookup('env', 'USER') }}"
+      group: "{{ lookup('env', 'USER') }}"
+      mode: 0774
+
+  - name: Create symlink to openshift-install cli
+    ansible.builtin.file:
+      state: link
+      force: yes
+      src: "{{ binary_directory }}/{{ install_binary_name }}-{{ release }}"
+      dest: "{{ binary_directory }}/{{ install_binary_name }}"
+    when: create_symlinks
+
+- name: Clean up
+  file:
+    state: absent
+    path: "{{ item }}"
+  loop:
+  - "/tmp/{{ install_binary_name }}-{{ release }}.tar.gz"
+  - "/tmp/openshift-client-linux-{{ okd_release }}.tar.gz"
+  - /tmp/{{ install_binary_name }}
+  - "/tmp/oc-{{ release }}.tar.gz"
+  - /tmp/oc

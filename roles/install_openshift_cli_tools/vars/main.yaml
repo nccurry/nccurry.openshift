@@ -1,0 +1,17 @@
+# Whether to symlink the unversioned cli to the versioned one - i.e. oc -> oc-4.9.10
+create_symlinks: true
+
+# Directory where binaries are installed
+binary_directory: "{{ lookup('env', 'HOME') }}/bin"
+
+# Install OpenShift or OKD installer. Valid values are ocp or okd
+install_type: ocp
+
+# OKD release version to use - only needed with install_type=okd
+okd_release: 4.9.0-0.okd-2021-11-28-035710
+
+# OpenShift release version to use - only needed with install_type=ocp
+ocp_release: 4.9.10
+
+# If teardown is set to true, remove everything
+teardown: false
