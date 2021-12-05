@@ -38,10 +38,10 @@ jobs:
           files: "README.md LICENSE galaxy.yml"
           directories: "roles"
 
-      - name: Build Ansible Collection
+      - name: Build Ansible collection
         run: ansible-galaxy collection build build/src --force
 
-      - name: Create Release
+      - name: Create release
         id: create_release
         uses: actions/create-release@v1
         env:
@@ -64,7 +64,7 @@ jobs:
           draft: false
           prerelease: false
 
-      - name: Upload Release Asset
+      - name: Upload release Asset
         id: upload-release-asset
         uses: actions/upload-release-asset@v1
         env:
@@ -75,6 +75,10 @@ jobs:
           asset_name: nccurry-openshift-${{ steps.cversion.outputs.version }}.tar.gz
           asset_content_type: application/tar+gzip
 
-      - name: Deploy Ansible collection to Galaxy
-#        run: ansible-galaxy collection publish nccurry-openshift-${{ steps.cversion.outputs.version }}.tar.gz --api-key ${{ secrets.GALAXYDEV_API_KEY }}
+      - name: Deploy Ansible collection to Galaxy Dev
+        if: github.ref == 'refs/heads/development'
         run: ansible-galaxy collection publish nccurry-openshift-${{ steps.cversion.outputs.version }}.tar.gz --server https://galaxy-dev.ansible.com/ --api-key ${{ secrets.GALAXYDEV_API_KEY }}
+
+      - name: Deploy Ansible collection to Galaxy
+        if: github.ref == 'refs/heads/master'
+        run: ansible-galaxy collection publish nccurry-openshift-${{ steps.cversion.outputs.version }}.tar.gz --api-key ${{ secrets.GALAXYDEV_API_KEY }}
