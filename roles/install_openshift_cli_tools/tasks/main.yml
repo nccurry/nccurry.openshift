@@ -4,7 +4,7 @@
     oc_url: "{{ (install_type == 'ocp') | ternary(ocp_oc_url, okd_oc_url) }}"
     install_url: "{{ (install_type == 'ocp') | ternary(ocp_url, okd_url) }}"
     install_binary_name: "{{ (install_type == 'ocp') | ternary('openshift-install', 'okd-install') }}"
-  import_tasks: teardown.yaml
+  import_tasks: teardown.yml
   when: teardown
 
 - name: Deploy prerequities
@@ -13,5 +13,5 @@
     oc_url: "{{ (install_type == 'ocp') | ternary(ocp_oc_url, okd_oc_url) }}"
     install_url: "{{ (install_type == 'ocp') | ternary(ocp_url, okd_url) }}"
     install_binary_name: "{{ (install_type == 'ocp') | ternary('openshift-install', 'okd-install') }}"
-  import_tasks: deploy.yaml
+  import_tasks: deploy.yml
   when: not teardown
