@@ -25,7 +25,11 @@ Role Variables
 Dependencies
 ------------
 
-None
+Before using this role you must install the collection
+
+```shell
+ansible-galaxy install collection nccurry.openshift
+```
 
 Example Playbook
 ----------------
@@ -41,7 +45,7 @@ Example Playbook
       install_type: okd
       okd_release: 4.8.0-0.okd-2021-11-14-052418
     import_role:
-      name: install_openshift_cli_tools
+      name: nccurry.openshift.install_openshift_cli_tools
 ```
 
 License
