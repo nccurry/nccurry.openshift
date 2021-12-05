@@ -53,14 +53,8 @@ jobs:
           body: |
             # Ansible Collection: nccurry.openshift
             Install with:
-            ```sh
-            ansible-galaxy collection install -r requirements.yml -f
-            ```
-            The requirements.yml needs to have the following format and content:
-            ```yaml
-            ---
-            collections:
-                - https://github.com/nccurry/nccurry.openshift/releases/download/v${{ steps.cversion.outputs.version }}/nccurry-openshift-${{ steps.cversion.outputs.version }}.tar.gz
+            ```shell
+            ansible-galaxy collection install nccurry.openshift
             ```
           draft: false
           prerelease: false
