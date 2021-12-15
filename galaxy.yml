@@ -1,7 +1,7 @@
 ---
 namespace: nccurry
 name: openshift
-version: 1.0.0
+version: 1.1.0
 readme: README.md
 authors:
 - Nick Curry <code@nickcurry.com>
@@ -18,7 +18,7 @@ tags:
 - container
 - docker
 - podman
-dependencies: []
+dependencies: {}
 repository: https://github.com/nccurry/nccurry.openshift
 documentation: ''
 homepage: ''
