@@ -18,7 +18,7 @@ tags:
 - container
 - docker
 - podman
-dependencies: {}
+dependencies: []
 repository: https://github.com/nccurry/nccurry.openshift
 documentation: ''
 homepage: ''
