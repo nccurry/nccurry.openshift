@@ -10,7 +10,7 @@ from ansible.module_utils.basic import AnsibleModule
 
 DOCUMENTATION = r'''
 ---
-module: openshift_cli_tools
+module: cli_tools
 short_description: Module to download and manage OpenShift / OKD CLI tools
 description:
 - This module is used to download common CLI tools used when administering OpenShift / OKD clusters.
@@ -113,7 +113,7 @@ class CollectionAnsibleModule:
         self._module.exit_json(**self._result)
 
 
-class OpenShiftCliToolsModule(CollectionAnsibleModule):
+class CliToolsModule(CollectionAnsibleModule):
     def __init__(self, module):
         # Initialize superclass methods
         super().__init__(module)
@@ -380,8 +380,8 @@ def main():
         ]
     )
 
-    openshift_cli_tools_module = OpenShiftCliToolsModule(module)
-    openshift_cli_tools_module.process_state()
+    cli_tools_module = CliToolsModule(module)
+    cli_tools_module.process_state()
 
 
 if __name__ == '__main__':
