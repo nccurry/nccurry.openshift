@@ -280,84 +280,115 @@ class CliToolsModule(CollectionAnsibleModule):
         """Entrypoint into Ansible module"""
         if self.state == 'present':
             if self.install_type == 'okd':
-                self.download_file(path="/tmp/okd_install.tar.gz", url=self.okd_install_tar_gz_url(self.okd_release))
-                self.extract_tar_gz(tar_path="/tmp/okd_install.tar.gz", extract_path="/tmp/okd_install")
-                self.copy_executable(src="/tmp/okd_install/openshift-install", dest=f"{self.executable_directory}/okd-install-{self.okd_release}")
+                # okd-install
+                if not self.file_exists(path=f"{self.executable_directory}/okd-install-{self.okd_release}"):
+                    self.download_file(path="/tmp/okd_install.tar.gz", url=self.okd_install_tar_gz_url(self.okd_release))
+                    self.extract_tar_gz(tar_path="/tmp/okd_install.tar.gz", extract_path="/tmp/okd_install")
+                    self.copy_executable(src="/tmp/okd_install/openshift-install", dest=f"{self.executable_directory}/okd-install-{self.okd_release}")
+
                 if self.symlink:
                     self.create_symlink(link=f"{self.executable_directory}/okd-install", target=f"{self.executable_directory}/okd-install-{self.okd_release}")
+
                 self.delete_file(path="/tmp/okd_install.tar.gz")
                 self.delete_file(path="/tmp/okd_install")
 
-                self.download_file(path="/tmp/oc.tar.gz", url=self.okd_oc_tar_gz_url(self.okd_release))
-                self.extract_tar_gz(tar_path="/tmp/oc.tar.gz", extract_path="/tmp/oc")
-                self.copy_executable(src="/tmp/oc/oc", dest=f"{self.executable_directory}/oc-{self.okd_release}")
+                # oc
+                if not self.file_exists(path=f"{self.executable_directory}/oc-{self.okd_release}"):
+                    self.download_file(path="/tmp/oc.tar.gz", url=self.okd_oc_tar_gz_url(self.okd_release))
+                    self.extract_tar_gz(tar_path="/tmp/oc.tar.gz", extract_path="/tmp/oc")
+                    self.copy_executable(src="/tmp/oc/oc", dest=f"{self.executable_directory}/oc-{self.okd_release}")
+
                 if self.symlink:
                     self.create_symlink(link=f"{self.executable_directory}/oc", target=f"{self.executable_directory}/oc-{self.okd_release}")
+
                 self.delete_file(path="/tmp/oc.tar.gz")
                 self.delete_file(path="/tmp/oc")
 
             elif self.install_type == 'ocp':
-                self.download_file(path="/tmp/openshift_install.tar.gz", url=self.openshift_install_tar_gz_url(self.ocp_release))
-                self.extract_tar_gz(tar_path="/tmp/openshift_install.tar.gz", extract_path="/tmp/openshift_install")
-                self.copy_executable(src="/tmp/openshift_install/openshift-install", dest=f"{self.executable_directory}/openshift-install-{self.ocp_release}")
+                # openshift-install
+                if not self.file_exists(f"{self.executable_directory}/openshift-install-{self.ocp_release}"):
+                    self.download_file(path="/tmp/openshift_install.tar.gz", url=self.openshift_install_tar_gz_url(self.ocp_release))
+                    self.extract_tar_gz(tar_path="/tmp/openshift_install.tar.gz", extract_path="/tmp/openshift_install")
+                    self.copy_executable(src="/tmp/openshift_install/openshift-install", dest=f"{self.executable_directory}/openshift-install-{self.ocp_release}")
+
                 if self.symlink:
                     self.create_symlink(link=f"{self.executable_directory}/openshift-install", target=f"{self.executable_directory}/openshift-install-{self.ocp_release}")
+
                 self.delete_file(path="/tmp/openshift_install.tar.gz")
                 self.delete_file(path="/tmp/openshift_install")
 
-                self.download_file(path="/tmp/oc.tar.gz", url=self.openshift_oc_install_tar_gz_url(self.ocp_release))
-                self.extract_tar_gz(tar_path="/tmp/oc.tar.gz", extract_path="/tmp/oc")
-                self.copy_executable(src="/tmp/oc/oc", dest=f"{self.executable_directory}/oc-{self.ocp_release}")
+                # oc
+                if not self.file_exists(f"{self.executable_directory}/oc-{self.ocp_release}"):
+                    self.download_file(path="/tmp/oc.tar.gz", url=self.openshift_oc_install_tar_gz_url(self.ocp_release))
+                    self.extract_tar_gz(tar_path="/tmp/oc.tar.gz", extract_path="/tmp/oc")
+                    self.copy_executable(src="/tmp/oc/oc", dest=f"{self.executable_directory}/oc-{self.ocp_release}")
+
                 if self.symlink:
                     self.create_symlink(link=f"{self.executable_directory}/oc", target=f"{self.executable_directory}/oc-{self.ocp_release}")
+
                 self.delete_file(path="/tmp/oc.tar.gz")
                 self.delete_file(path="/tmp/oc")
 
             else:
-                self.download_file(path="/tmp/okd_install.tar.gz", url=self.okd_install_tar_gz_url(self.okd_release))
-                self.extract_tar_gz(tar_path="/tmp/okd_install.tar.gz", extract_path="/tmp/okd_install")
-                self.copy_executable(src="/tmp/okd_install/openshift-install", dest=f"{self.executable_directory}/okd-install-{self.okd_release}")
+                # okd-install
+                if not self.file_exists(path=f"{self.executable_directory}/okd-install-{self.okd_release}"):
+                    self.download_file(path="/tmp/okd_install.tar.gz", url=self.okd_install_tar_gz_url(self.okd_release))
+                    self.extract_tar_gz(tar_path="/tmp/okd_install.tar.gz", extract_path="/tmp/okd_install")
+                    self.copy_executable(src="/tmp/okd_install/openshift-install", dest=f"{self.executable_directory}/okd-install-{self.okd_release}")
+
                 if self.symlink:
                     self.create_symlink(link=f"{self.executable_directory}/okd-install", target=f"{self.executable_directory}/okd-install-{self.okd_release}")
+
                 self.delete_file(path="/tmp/okd_install.tar.gz")
                 self.delete_file(path="/tmp/okd_install")
 
-                self.download_file(path="/tmp/openshift_install.tar.gz", url=self.openshift_install_tar_gz_url(self.ocp_release))
-                self.extract_tar_gz(tar_path="/tmp/openshift_install.tar.gz", extract_path="/tmp/openshift_install")
-                self.copy_executable(src="/tmp/openshift_install/openshift-install", dest=f"{self.executable_directory}/openshift-install-{self.ocp_release}")
+                # openshift-install
+                if not self.file_exists(f"{self.executable_directory}/openshift-install-{self.ocp_release}"):
+                    self.download_file(path="/tmp/openshift_install.tar.gz", url=self.openshift_install_tar_gz_url(self.ocp_release))
+                    self.extract_tar_gz(tar_path="/tmp/openshift_install.tar.gz", extract_path="/tmp/openshift_install")
+                    self.copy_executable(src="/tmp/openshift_install/openshift-install", dest=f"{self.executable_directory}/openshift-install-{self.ocp_release}")
+
                 if self.symlink:
                     self.create_symlink(link=f"{self.executable_directory}/openshift-install", target=f"{self.executable_directory}/openshift-install-{self.ocp_release}")
+
                 self.delete_file(path="/tmp/openshift_install.tar.gz")
                 self.delete_file(path="/tmp/openshift_install")
 
-                self.download_file(path="/tmp/oc.tar.gz", url=self.openshift_oc_install_tar_gz_url(self.ocp_release))
-                self.extract_tar_gz(tar_path="/tmp/oc.tar.gz", extract_path="/tmp/oc")
-                self.copy_executable(src="/tmp/oc/oc", dest=f"{self.executable_directory}/oc-{self.ocp_release}")
+                # oc
+                if not self.file_exists(f"{self.executable_directory}/oc-{self.ocp_release}"):
+                    self.download_file(path="/tmp/oc.tar.gz", url=self.openshift_oc_install_tar_gz_url(self.ocp_release))
+                    self.extract_tar_gz(tar_path="/tmp/oc.tar.gz", extract_path="/tmp/oc")
+                    self.copy_executable(src="/tmp/oc/oc", dest=f"{self.executable_directory}/oc-{self.ocp_release}")
+
                 if self.symlink:
                     self.create_symlink(link=f"{self.executable_directory}/oc", target=f"{self.executable_directory}/oc-{self.ocp_release}")
+
                 self.delete_file(path="/tmp/oc.tar.gz")
                 self.delete_file(path="/tmp/oc")
 
         elif self.state == 'absent':
-            self.delete_file(path="/tmp/okd_install.tar.gz")
-            self.delete_file(path="/tmp/okd_install")
-            self.delete_file(path="/tmp/openshift_install.tar.gz")
-            self.delete_file(path="/tmp/openshift_install")
-            self.delete_file(path="/tmp/oc.tar.gz")
-            self.delete_file(path="/tmp/oc")
-            if self.install_type in ['okd', 'both']:
+            if self.install_type in ["okd", "both"]:
+                self.delete_file(path="/tmp/okd_install.tar.gz")
+                self.delete_file(path="/tmp/okd_install")
+
                 self.delete_file(f"{self.executable_directory}/okd-install-{self.okd_release}")
                 self.delete_file(f"{self.executable_directory}/oc-{self.okd_release}")
                 if self.symlink:
                     self.delete_file(f"{self.executable_directory}/okd-install")
                     self.delete_file(f"{self.executable_directory}/oc")
 
-            if self.install_type in ['ocp', 'both']:
+            if self.install_type in ["ocp", "both"]:
+                self.delete_file(path="/tmp/openshift_install.tar.gz")
+                self.delete_file(path="/tmp/openshift_install")
+
                 self.delete_file(f"{self.executable_directory}/openshift-install-{self.ocp_release}")
                 self.delete_file(f"{self.executable_directory}/oc-{self.ocp_release}")
                 if self.symlink:
                     self.delete_file(f"{self.executable_directory}/openshift-install")
                     self.delete_file(f"{self.executable_directory}/oc")
+
+            self.delete_file(path="/tmp/oc.tar.gz")
+            self.delete_file(path="/tmp/oc")
 
 
 def main():
