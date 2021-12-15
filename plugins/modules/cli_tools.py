@@ -168,22 +168,20 @@ class CliToolsModule(CollectionAnsibleModule):
         url : str
             The second parameter.
         """
-        if self.file_exists(path):
-            return
+        if not self.file_exists(path):
+            try:
+                self._changed()
+                pool_manager = urllib3.PoolManager()
 
-        try:
-            self._changed()
-            pool_manager = urllib3.PoolManager()
+                response = pool_manager.request('GET', url, preload_content=False)
+                if response.status != 200:
+                    self._fail(f"There was a problem downloading file at {url}: {response.status} - {response.reason}")
 
-            response = pool_manager.request('GET', url, preload_content=False)
-            if response.status != 200:
-                self._fail(f"There was a problem downloading file at {url}: {response.status} - {response.reason}")
+                with open(path, 'wb') as file:
+                    shutil.copyfileobj(response, file)
 
-            with open(path, 'wb') as file:
-                shutil.copyfileobj(response, file)
-
-        except Exception as error:
-            self._fail(repr(error))
+            except Exception as error:
+                self._fail(repr(error))
 
     def extract_tar_gz(self, tar_path: str, extract_path: str):
         """Unarchive a tar.gz file
