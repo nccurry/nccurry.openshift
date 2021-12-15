@@ -1,7 +1,7 @@
 ---
 namespace: nccurry
 name: openshift
-version: 1.2.2
+version: 1.2.3
 readme: README.md
 authors:
 - Nick Curry <code@nickcurry.com>
