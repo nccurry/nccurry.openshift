@@ -390,6 +390,8 @@ class CliToolsModule(CollectionAnsibleModule):
             self.delete_file(path="/tmp/oc.tar.gz")
             self.delete_file(path="/tmp/oc")
 
+        self._exit()
+
 
 def main():
     module_args = dict(
