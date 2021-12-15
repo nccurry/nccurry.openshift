@@ -86,6 +86,9 @@ EXAMPLES = r'''
 # Remove CLI tools
 - name: Uninstall CLI tools
   nccurry.openshift.install_cli_tools:
+    install_type: both
+    ocp_release: 4.9.10
+    okd_release: 4.9.0-0.okd-2021-11-28-035710
     state: absent
 '''
 
@@ -372,6 +375,7 @@ def main():
         supports_check_mode=True,
         required_if=[
             ('state', 'present', ('okd_release', 'ocp_release'), True),
+            ('state', 'absent', ('okd_release', 'ocp_release'), True),
             ('install_type', 'both', ('okd_release', 'ocp_release'), False)
         ]
     )
