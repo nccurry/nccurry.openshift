@@ -4,8 +4,8 @@
 import os
 import tarfile
 import shutil
-import urllib3
 from collections.abc import MutableMapping
+import urllib3
 from ansible.module_utils.basic import AnsibleModule
 
 
@@ -32,22 +32,18 @@ options:
       - Directory where executables are installed
       type: str
       default: %{HOME}/bin
-    install_type:
+    executable:
       description:
-      - Install OpenShift or OKD tools
+      - Which executable to install
       type: str
       default: okd
       choices:
-      - ocp
-      - okd
-      - both
-    okd_release:
+      - openshift-install
+      - okd-install
+      - oc
+    release:
       description:
-      - Version of OKD tools to install
-      type: str
-    ocp_release:
-      description:
-      - Version of OpenShift tools to install
+      - Version of the executable tools to install
       type: str
     state:
       description:
@@ -62,35 +58,51 @@ options:
 '''
 
 EXAMPLES = r'''
-# Install CLI tools for OpenShift
-- name: Install CLI tools
-  nccurry.openshift.install_cli_tools:
-    symlink: true
+# Install CLI tools for OKD / OpenShift
+- name: Install openshift-install for OpenShift 4.9.10 and create symlink /usr/local/bin/oc -> /usr/local/bin/oc-4.9.10
+  nccurry.openshift.cli_tools:
     executable_directory: /usr/local/bin
-    install_type: ocp
-    ocp_release: 4.9.10
-    
-# Install CLI tools for OKD
-- name: Install CLI tools
-  nccurry.openshift.install_cli_tools:
-    install_type: okd
-    okd_release: 4.9.0-0.okd-2021-11-28-035710
-    
-# Install CLI tools for OpenShift and OKD
-- name: Install CLI tools
-  nccurry.openshift.install_cli_tools:
+    executable: openshift-install
+    release: 4.9.10
     symlink: true
-    install_type: both
-    ocp_release: 4.9.10
-    okd_release: 4.9.0-0.okd-2021-11-28-035710
     
-# Remove CLI tools
-- name: Uninstall CLI tools
-  nccurry.openshift.install_cli_tools:
-    install_type: both
-    ocp_release: 4.9.10
-    okd_release: 4.9.0-0.okd-2021-11-28-035710
+- name: Install all cli tools for OKD / OpenShift
+  nccurry.openshift.cli_tools:
+    executable: "{{ item.name }}"
+    release: "{{ item.version }}"
+    symlink: true
+  loop:
+  - name: openshift-install
+    version: 4.9.10
+  - name: okd-install
+    version: 4.9.0-0.okd-2021-11-28-035710
+  - name: oc
+    version: 4.9.10
+    
+- name: Install okd-install
+  nccurry.openshift.cli_tools:
+    executable: okd-install
+    release: 4.9.0-0.okd-2021-11-28-035710
+    
+- name: Uninstall okd-install
+  nccurry.openshift.cli_tools:
+    executable: okd-install
+    release: 4.9.0-0.okd-2021-11-28-035710
     state: absent
+    
+- name: Uninstall all cli tools for OKD / OpenShift
+  nccurry.openshift.cli_tools:
+    executable: "{{ item.name }}"
+    release: "{{ item.version }}"
+    symlink: true
+    state: absent
+  loop:
+  - name: openshift-install
+    version: 4.9.10
+  - name: okd-install
+    version: 4.9.0-0.okd-2021-11-28-035710
+  - name: oc
+    version: 4.9.10
 '''
 
 RETURN = r'''
@@ -102,15 +114,7 @@ cli_tools:
       "okd-install": {
           "path": "/home/user/bin/okd-install-4.9.0-0.okd-2021-12-12-025847",
           "symlink": "/home/user/bin/okd-install"
-      },
-      "openshift-install": {
-          "path": "/home/user/bin/openshift-install-4.9.10",
-          "symlink": "/home/user/bin/openshift-install"
-      },
-      "oc: {
-          "path": "/home/user/bin/oc-4.9.10",
-          "symlink": "/home/user/bin/oc"
-      } 
+      }
   }
 '''
 
@@ -186,26 +190,24 @@ class CliToolsModule(CollectionAnsibleModule):
         # Module parameters
         self.symlink = module.params.get('symlink')
         self.executable_directory = module.params.get('executable_directory')
-        self.install_type = module.params.get('install_type')
-        self.okd_release = module.params.get('okd_release')
-        self.ocp_release = module.params.get('ocp_release')
+        self.executable = module.params.get('executable')
+        self.release = module.params.get('release')
         self.state = module.params.get('state')
 
-    @staticmethod
-    def okd_install_tar_gz_url(okd_release: str) -> str:
-        return f"https://github.com/openshift/okd/releases/download/{okd_release}/openshift-install-linux-{okd_release}.tar.gz"
+    def tar_gz_download_url(self):
+        """Return the https download url of an executables tar.gz archive"""
+        if self.executable == "okd-install":
+            return f"https://github.com/openshift/okd/releases/download/{self.release}/openshift-install-linux-{self.release}.tar.gz"
 
-    @staticmethod
-    def okd_oc_tar_gz_url(okd_release: str) -> str:
-        return f"https://github.com/openshift/okd/releases/download/{okd_release}/openshift-client-linux-{okd_release}.tar.gz"
+        if self.executable == "openshift-install":
+            return f"https://mirror.openshift.com/pub/openshift-v4/clients/ocp/{self.release}/openshift-install-linux.tar.gz"
 
-    @staticmethod
-    def openshift_install_tar_gz_url(ocp_release: str) -> str:
-        return f"https://mirror.openshift.com/pub/openshift-v4/clients/ocp/{ocp_release}/openshift-install-linux.tar.gz"
+        if self.executable == "oc":
+            # OKD oc versions contain the text okd - i.e. 4.9.0-0.okd-2021-12-12-025847
+            if "okd" in self.release:
+                return f"https://github.com/openshift/okd/releases/download/{self.release}/openshift-client-linux-{self.release}.tar.gz"
 
-    @staticmethod
-    def openshift_oc_install_tar_gz_url(ocp_release: str) -> str:
-        return f"https://mirror.openshift.com/pub/openshift-v4/clients/ocp/{ocp_release}/openshift-client-linux.tar.gz"
+            return f"https://mirror.openshift.com/pub/openshift-v4/clients/ocp/{self.release}/openshift-client-linux.tar.gz"
 
     @staticmethod
     def file_exists(path: str) -> bool:
@@ -339,142 +341,42 @@ class CliToolsModule(CollectionAnsibleModule):
         except Exception as error:
             self._fail(repr(error))
 
+    def install_executable(self):
+        """Download executable tar.gz, unarchive it, copy it to the executable directory, and symlink it if desired"""
+        # We rename openshift-install to okd-install for OKD
+        tar_name = "openshift-install" if self.executable == "okd-install" else self.executable
+
+        # Download file and extract tar.gz
+        if not self.file_exists(path=f"{self.executable_directory}/{self.executable}-{self.release}"):
+            self.download_file(path=f"/tmp/{self.executable}.tar.gz", url=self.tar_gz_download_url())
+            self.extract_tar_gz(tar_path=f"/tmp/{self.executable}.tar.gz", extract_path=f"/tmp/{self.executable}")
+            self.copy_executable(src=f"/tmp/{self.executable}/{tar_name}", dest=f"{self.executable_directory}/{self.executable}-{self.release}")
+        self._update_result({'cli_tools': {self.executable: {'path': f"{self.executable_directory}/{self.executable}-{self.release}"}}})
+
+        # Create symlink
+        if self.symlink:
+            self.create_symlink(link=f"{self.executable_directory}/{self.executable}", target=f"{self.executable_directory}/{self.executable}-{self.release}")
+            self._update_result({'cli_tools': {self.executable: {'symlink': f"{self.executable_directory}/{self.executable}"}}})
+
+        # Cleanup
+        self.delete_file(path=f"/tmp/{self.executable}")
+        self.delete_file(path=f"/tmp/{self.executable}")
+
+    def uninstall_executable(self):
+        """Uninstall executable and any intermediary files"""
+        self.delete_file(path=f"/tmp/{self.executable}.tar.gz")
+        self.delete_file(path=f"/tmp/{self.executable}")
+
+        self.delete_file(f"{self.executable_directory}/{self.executable}-{self.release}")
+        if self.symlink:
+            self.delete_file(f"{self.executable_directory}/{self.executable}")
+
     def process_state(self):
         """Entrypoint into Ansible module"""
-        # TODO: This could be compacted
         if self.state == 'present':
-            if self.install_type == 'okd':
-                # okd-install
-                if not self.file_exists(path=f"{self.executable_directory}/okd-install-{self.okd_release}"):
-                    self.download_file(path="/tmp/okd_install.tar.gz", url=self.okd_install_tar_gz_url(self.okd_release))
-                    self.extract_tar_gz(tar_path="/tmp/okd_install.tar.gz", extract_path="/tmp/okd_install")
-                    self.copy_executable(src="/tmp/okd_install/openshift-install", dest=f"{self.executable_directory}/okd-install-{self.okd_release}")
-
-                self._update_result({'cli_tools': {'okd-install': {'path': f"{self.executable_directory}/okd-install-{self.okd_release}"}}})
-
-                if self.symlink:
-                    self.create_symlink(link=f"{self.executable_directory}/okd-install", target=f"{self.executable_directory}/okd-install-{self.okd_release}")
-                    self._update_result({'cli_tools': {'okd-install': {'symlink': f"{self.executable_directory}/okd-install"}}})
-
-                self.delete_file(path="/tmp/okd_install.tar.gz")
-                self.delete_file(path="/tmp/okd_install")
-
-                # oc
-                if not self.file_exists(path=f"{self.executable_directory}/oc-{self.okd_release}"):
-                    self.download_file(path="/tmp/oc.tar.gz", url=self.okd_oc_tar_gz_url(self.okd_release))
-                    self.extract_tar_gz(tar_path="/tmp/oc.tar.gz", extract_path="/tmp/oc")
-                    self.copy_executable(src="/tmp/oc/oc", dest=f"{self.executable_directory}/oc-{self.okd_release}")
-
-                self._update_result({'cli_tools': {'oc': {'path': f"{self.executable_directory}/oc-{self.okd_release}"}}})
-
-                if self.symlink:
-                    self.create_symlink(link=f"{self.executable_directory}/oc", target=f"{self.executable_directory}/oc-{self.okd_release}")
-                    self._update_result({'cli_tools': {'oc': {'symlink': f"{self.executable_directory}/oc"}}})
-
-                self.delete_file(path="/tmp/oc.tar.gz")
-                self.delete_file(path="/tmp/oc")
-
-            elif self.install_type == 'ocp':
-                # openshift-install
-                if not self.file_exists(f"{self.executable_directory}/openshift-install-{self.ocp_release}"):
-                    self.download_file(path="/tmp/openshift_install.tar.gz", url=self.openshift_install_tar_gz_url(self.ocp_release))
-                    self.extract_tar_gz(tar_path="/tmp/openshift_install.tar.gz", extract_path="/tmp/openshift_install")
-                    self.copy_executable(src="/tmp/openshift_install/openshift-install", dest=f"{self.executable_directory}/openshift-install-{self.ocp_release}")
-
-                self._update_result({'cli_tools': {'openshift-install': {'path': f"{self.executable_directory}/openshift-install-{self.ocp_release}"}}})
-
-                if self.symlink:
-                    self.create_symlink(link=f"{self.executable_directory}/openshift-install", target=f"{self.executable_directory}/openshift-install-{self.ocp_release}")
-                    self._update_result({'cli_tools': {'openshift-install': {'symlink': f"{self.executable_directory}/openshift-install"}}})
-
-                self.delete_file(path="/tmp/openshift_install.tar.gz")
-                self.delete_file(path="/tmp/openshift_install")
-
-                # oc
-                if not self.file_exists(f"{self.executable_directory}/oc-{self.ocp_release}"):
-                    self.download_file(path="/tmp/oc.tar.gz", url=self.openshift_oc_install_tar_gz_url(self.ocp_release))
-                    self.extract_tar_gz(tar_path="/tmp/oc.tar.gz", extract_path="/tmp/oc")
-                    self.copy_executable(src="/tmp/oc/oc", dest=f"{self.executable_directory}/oc-{self.ocp_release}")
-
-                self._update_result({'cli_tools': {'oc': {'path': f"{self.executable_directory}/oc-{self.ocp_release}"}}})
-
-                if self.symlink:
-                    self.create_symlink(link=f"{self.executable_directory}/oc", target=f"{self.executable_directory}/oc-{self.ocp_release}")
-                    self._update_result({'cli_tools': {'oc': {'symlink': f"{self.executable_directory}/oc"}}})
-
-                self.delete_file(path="/tmp/oc.tar.gz")
-                self.delete_file(path="/tmp/oc")
-
-            else:
-                # okd-install
-                if not self.file_exists(path=f"{self.executable_directory}/okd-install-{self.okd_release}"):
-                    self.download_file(path="/tmp/okd_install.tar.gz", url=self.okd_install_tar_gz_url(self.okd_release))
-                    self.extract_tar_gz(tar_path="/tmp/okd_install.tar.gz", extract_path="/tmp/okd_install")
-                    self.copy_executable(src="/tmp/okd_install/openshift-install", dest=f"{self.executable_directory}/okd-install-{self.okd_release}")
-
-                self._update_result({'cli_tools': {'okd-install': {'path': f"{self.executable_directory}/okd-install-{self.okd_release}"}}})
-
-                if self.symlink:
-                    self.create_symlink(link=f"{self.executable_directory}/okd-install", target=f"{self.executable_directory}/okd-install-{self.okd_release}")
-                    self._update_result({'cli_tools': {'okd-install': {'symlink': f"{self.executable_directory}/okd-install"}}})
-
-                self.delete_file(path="/tmp/okd_install.tar.gz")
-                self.delete_file(path="/tmp/okd_install")
-
-                # openshift-install
-                if not self.file_exists(f"{self.executable_directory}/openshift-install-{self.ocp_release}"):
-                    self.download_file(path="/tmp/openshift_install.tar.gz", url=self.openshift_install_tar_gz_url(self.ocp_release))
-                    self.extract_tar_gz(tar_path="/tmp/openshift_install.tar.gz", extract_path="/tmp/openshift_install")
-                    self.copy_executable(src="/tmp/openshift_install/openshift-install", dest=f"{self.executable_directory}/openshift-install-{self.ocp_release}")
-
-                self._update_result({'cli_tools': {'openshift-install': {'path': f"{self.executable_directory}/openshift-install-{self.ocp_release}"}}})
-
-                if self.symlink:
-                    self.create_symlink(link=f"{self.executable_directory}/openshift-install", target=f"{self.executable_directory}/openshift-install-{self.ocp_release}")
-                    self._update_result({'cli_tools': {'openshift-install': {'symlink': f"{self.executable_directory}/openshift-install"}}})
-
-                self.delete_file(path="/tmp/openshift_install.tar.gz")
-                self.delete_file(path="/tmp/openshift_install")
-
-                # oc
-                if not self.file_exists(f"{self.executable_directory}/oc-{self.ocp_release}"):
-                    self.download_file(path="/tmp/oc.tar.gz", url=self.openshift_oc_install_tar_gz_url(self.ocp_release))
-                    self.extract_tar_gz(tar_path="/tmp/oc.tar.gz", extract_path="/tmp/oc")
-                    self.copy_executable(src="/tmp/oc/oc", dest=f"{self.executable_directory}/oc-{self.ocp_release}")
-
-                self._update_result({'cli_tools': {'oc': {'path': f"{self.executable_directory}/oc-{self.ocp_release}"}}})
-
-                if self.symlink:
-                    self.create_symlink(link=f"{self.executable_directory}/oc", target=f"{self.executable_directory}/oc-{self.ocp_release}")
-                    self._update_result({'cli_tools': {'oc': {'symlink': f"{self.executable_directory}/oc"}}})
-
-                self.delete_file(path="/tmp/oc.tar.gz")
-                self.delete_file(path="/tmp/oc")
-
+            self.install_executable()
         elif self.state == 'absent':
-            if self.install_type in ["okd", "both"]:
-                self.delete_file(path="/tmp/okd_install.tar.gz")
-                self.delete_file(path="/tmp/okd_install")
-
-                self.delete_file(f"{self.executable_directory}/okd-install-{self.okd_release}")
-                self.delete_file(f"{self.executable_directory}/oc-{self.okd_release}")
-                if self.symlink:
-                    self.delete_file(f"{self.executable_directory}/okd-install")
-                    self.delete_file(f"{self.executable_directory}/oc")
-
-            if self.install_type in ["ocp", "both"]:
-                self.delete_file(path="/tmp/openshift_install.tar.gz")
-                self.delete_file(path="/tmp/openshift_install")
-
-                self.delete_file(f"{self.executable_directory}/openshift-install-{self.ocp_release}")
-                self.delete_file(f"{self.executable_directory}/oc-{self.ocp_release}")
-                if self.symlink:
-                    self.delete_file(f"{self.executable_directory}/openshift-install")
-                    self.delete_file(f"{self.executable_directory}/oc")
-
-            self.delete_file(path="/tmp/oc.tar.gz")
-            self.delete_file(path="/tmp/oc")
-
+            self.uninstall_executable()
         self._exit()
 
 
@@ -482,20 +384,14 @@ def main():
     module_args = dict(
         symlink=dict(type='bool', default=False),
         executable_directory=dict(type='str', default=f"{os.environ['HOME']}/bin"),
-        install_type=dict(type='str', default='okd', choices=['okd', 'ocp', 'both']),
-        okd_release=dict(type='str'),
-        ocp_release=dict(type='str'),
+        executable=dict(type='str', required=True, choices=['okd-install', 'openshift-install', 'oc']),
+        release=dict(type='str', required=True),
         state=dict(type='str', choices=['present', 'absent'], default='present')
     )
 
     module = AnsibleModule(
         argument_spec=module_args,
-        supports_check_mode=True,
-        required_if=[
-            ('state', 'present', ('okd_release', 'ocp_release'), True),
-            ('state', 'absent', ('okd_release', 'ocp_release'), True),
-            ('install_type', 'both', ('okd_release', 'ocp_release'), False)
-        ]
+        supports_check_mode=True
     )
 
     cli_tools_module = CliToolsModule(module)
