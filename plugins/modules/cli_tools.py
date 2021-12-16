@@ -5,6 +5,7 @@ import os
 import tarfile
 import shutil
 import urllib3
+from collections.abc import MutableMapping
 from ansible.module_utils.basic import AnsibleModule
 
 
@@ -93,30 +94,94 @@ EXAMPLES = r'''
 '''
 
 RETURN = r'''
+cli_tools_info:
+  description: List of CLI executables information
+  returned: on success
+  type: dict
+  sample: {
+      "okd-install": {
+          "path": "/home/user/bin/okd-install-4.9.0-0.okd-2021-12-12-025847",
+          "symlink": "/home/user/bin/okd-install"
+      },
+      "openshift-install": {
+          "path": "/home/user/bin/openshift-install-4.9.10",
+          "symlink": "/home/user/bin/openshift-install"
+      },
+      "oc: {
+          "path": "/home/user/bin/oc-4.9.10",
+          "symlink": "/home/user/bin/oc"
+      } 
+  }
 '''
 
 
 class CollectionAnsibleModule:
+    """Parent class representing the functionality of an Ansible collection module"""
     def __init__(self, module):
         self._module: AnsibleModule = module
         self._result: dict = dict(changed=False)
 
+    # https://stackoverflow.com/a/24088493/2394163
+    def _merge_dicts(self, first: dict, second: dict) -> dict:
+        """Merge two dict objects recursively
+
+        Update two dicts of dicts recursively,
+        if either mapping has leaves that are non-dicts,
+        the second's leaf overwrites the first's.
+
+        Parameters
+        ----------
+        first : dict
+            First dict
+        second : dict
+            Second dict
+        """
+        for k, v in first.items():
+            if k in second:
+                if all(isinstance(e, MutableMapping) for e in (v, second[k])):
+                    second[k] = self._merge_dicts(v, second[k])
+        d3 = first.copy()
+        d3.update(second)
+        return d3
+
+    def _update_result(self, new_data: dict):
+        """Merge new data into the result dict
+
+        Parameters
+        ----------
+        new_data : dict
+            Additional data to merge into the result struct
+        """
+        self._result = self._merge_dicts(self._result, new_data)
+
     def _changed(self):
+        """Indicate that Ansible should report a change, will exit if Ansible is in check_mode"""
         self._result['changed'] = True
         if self._module.check_mode:
             self._exit()
 
     def _fail(self, error: str):
+        """Indicate that Ansible should fail, will exit immediately
+
+        Parameters
+        ----------
+        error : str
+            Error message for Ansible to display
+        """
         self._module.fail_json(msg=error, **self._result)
 
     def _exit(self):
+        """Indicate that Ansible should exit"""
         self._module.exit_json(**self._result)
 
 
 class CliToolsModule(CollectionAnsibleModule):
+    """Class representing the functionality of this Ansible collection module"""
     def __init__(self, module):
         # Initialize superclass methods
         super().__init__(module)
+
+        self._update_result({'cli_tools_info': {}})
 
         # Module parameters
         self.symlink = module.params.get('symlink')
@@ -284,8 +349,11 @@ class CliToolsModule(CollectionAnsibleModule):
                     self.extract_tar_gz(tar_path="/tmp/okd_install.tar.gz", extract_path="/tmp/okd_install")
                     self.copy_executable(src="/tmp/okd_install/openshift-install", dest=f"{self.executable_directory}/okd-install-{self.okd_release}")
 
+                self._update_result({'cli_tools_info': {'okd-install': {'path': f"{self.executable_directory}/okd-install-{self.okd_release}"}}})
+
                 if self.symlink:
                     self.create_symlink(link=f"{self.executable_directory}/okd-install", target=f"{self.executable_directory}/okd-install-{self.okd_release}")
+                    self._update_result({'cli_tools_info': {'okd-install': {'symlink': f"{self.executable_directory}/okd-install"}}})
 
                 self.delete_file(path="/tmp/okd_install.tar.gz")
                 self.delete_file(path="/tmp/okd_install")
@@ -296,8 +364,11 @@ class CliToolsModule(CollectionAnsibleModule):
                     self.extract_tar_gz(tar_path="/tmp/oc.tar.gz", extract_path="/tmp/oc")
                     self.copy_executable(src="/tmp/oc/oc", dest=f"{self.executable_directory}/oc-{self.okd_release}")
 
+                self._update_result({'cli_tools_info': {'oc': {'path': f"{self.executable_directory}/oc-{self.okd_release}"}}})
+
                 if self.symlink:
                     self.create_symlink(link=f"{self.executable_directory}/oc", target=f"{self.executable_directory}/oc-{self.okd_release}")
+                    self._update_result({'cli_tools_info': {'oc': {'symlink': f"{self.executable_directory}/oc"}}})
 
                 self.delete_file(path="/tmp/oc.tar.gz")
                 self.delete_file(path="/tmp/oc")
@@ -309,8 +380,11 @@ class CliToolsModule(CollectionAnsibleModule):
                     self.extract_tar_gz(tar_path="/tmp/openshift_install.tar.gz", extract_path="/tmp/openshift_install")
                     self.copy_executable(src="/tmp/openshift_install/openshift-install", dest=f"{self.executable_directory}/openshift-install-{self.ocp_release}")
 
+                self._update_result({'cli_tools_info': {'openshift-install': {'path': f"{self.executable_directory}/openshift-install-{self.ocp_release}"}}})
+
                 if self.symlink:
                     self.create_symlink(link=f"{self.executable_directory}/openshift-install", target=f"{self.executable_directory}/openshift-install-{self.ocp_release}")
+                    self._update_result({'cli_tools_info': {'openshift-install': {'symlink': f"{self.executable_directory}/openshift-install"}}})
 
                 self.delete_file(path="/tmp/openshift_install.tar.gz")
                 self.delete_file(path="/tmp/openshift_install")
@@ -321,8 +395,11 @@ class CliToolsModule(CollectionAnsibleModule):
                     self.extract_tar_gz(tar_path="/tmp/oc.tar.gz", extract_path="/tmp/oc")
                     self.copy_executable(src="/tmp/oc/oc", dest=f"{self.executable_directory}/oc-{self.ocp_release}")
 
+                self._update_result({'cli_tools_info': {'oc': {'path': f"{self.executable_directory}/oc-{self.ocp_release}"}}})
+
                 if self.symlink:
                     self.create_symlink(link=f"{self.executable_directory}/oc", target=f"{self.executable_directory}/oc-{self.ocp_release}")
+                    self._update_result({'cli_tools_info': {'oc': {'symlink': f"{self.executable_directory}/oc"}}})
 
                 self.delete_file(path="/tmp/oc.tar.gz")
                 self.delete_file(path="/tmp/oc")
@@ -334,8 +411,11 @@ class CliToolsModule(CollectionAnsibleModule):
                     self.extract_tar_gz(tar_path="/tmp/okd_install.tar.gz", extract_path="/tmp/okd_install")
                     self.copy_executable(src="/tmp/okd_install/openshift-install", dest=f"{self.executable_directory}/okd-install-{self.okd_release}")
 
+                self._update_result({'cli_tools_info': {'okd-install': {'path': f"{self.executable_directory}/okd-install-{self.okd_release}"}}})
+
                 if self.symlink:
                     self.create_symlink(link=f"{self.executable_directory}/okd-install", target=f"{self.executable_directory}/okd-install-{self.okd_release}")
+                    self._update_result({'cli_tools_info': {'okd-install': {'symlink': f"{self.executable_directory}/okd-install"}}})
 
                 self.delete_file(path="/tmp/okd_install.tar.gz")
                 self.delete_file(path="/tmp/okd_install")
@@ -346,8 +426,11 @@ class CliToolsModule(CollectionAnsibleModule):
                     self.extract_tar_gz(tar_path="/tmp/openshift_install.tar.gz", extract_path="/tmp/openshift_install")
                     self.copy_executable(src="/tmp/openshift_install/openshift-install", dest=f"{self.executable_directory}/openshift-install-{self.ocp_release}")
 
+                self._update_result({'cli_tools_info': {'openshift-install': {'path': f"{self.executable_directory}/openshift-install-{self.ocp_release}"}}})
+
                 if self.symlink:
                     self.create_symlink(link=f"{self.executable_directory}/openshift-install", target=f"{self.executable_directory}/openshift-install-{self.ocp_release}")
+                    self._update_result({'cli_tools_info': {'openshift-install': {'symlink': f"{self.executable_directory}/openshift-install"}}})
 
                 self.delete_file(path="/tmp/openshift_install.tar.gz")
                 self.delete_file(path="/tmp/openshift_install")
@@ -358,8 +441,11 @@ class CliToolsModule(CollectionAnsibleModule):
                     self.extract_tar_gz(tar_path="/tmp/oc.tar.gz", extract_path="/tmp/oc")
                     self.copy_executable(src="/tmp/oc/oc", dest=f"{self.executable_directory}/oc-{self.ocp_release}")
 
+                self._update_result({'cli_tools_info': {'oc': {'path': f"{self.executable_directory}/oc-{self.ocp_release}"}}})
+
                 if self.symlink:
                     self.create_symlink(link=f"{self.executable_directory}/oc", target=f"{self.executable_directory}/oc-{self.ocp_release}")
+                    self._update_result({'cli_tools_info': {'oc': {'symlink': f"{self.executable_directory}/oc"}}})
 
                 self.delete_file(path="/tmp/oc.tar.gz")
                 self.delete_file(path="/tmp/oc")
